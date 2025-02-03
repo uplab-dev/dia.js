@@ -455,7 +455,7 @@ module.exports = class extends require ('../Pool.js') {
         
         for (let table_name in this.model.tables) {
         
-            let table = this.model.tables [table_name]
+            let table = this.model.tables [table_name]; if (!table) continue
             
             let {existing} = table; if (!existing) continue
             
@@ -535,7 +535,7 @@ module.exports = class extends require ('../Pool.js') {
 
 					for (let col of Object.values (ref_table.columns)) {
 
-						if (col.ref != table.name) continue
+						if (!col || col.ref != table.name) continue
 
 						if (!ref_table.existing.columns[col.name]) continue
 						if (!table.existing.columns[table.existing.pk]) continue
