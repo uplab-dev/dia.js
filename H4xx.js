@@ -63,6 +63,46 @@ global.dt_iso = (dt) => {
 	return ymd.join ('-')
 }
 
-global.is_uuid = s => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test (s)
-
 global.ZERO_UUID = '00000000-0000-0000-0000-000000000000'
+
+const CH_MINUS = '-'.charCodeAt (0)
+
+const CH_0     = '0'.charCodeAt (0)
+const CH_9     = '9'.charCodeAt (0)
+
+const CH_AU    = 'A'.charCodeAt (0)
+const CH_FU    = 'F'.charCodeAt (0)
+
+const CH_AL    = 'a'.charCodeAt (0)
+const CH_FL    = 'f'.charCodeAt (0)
+
+const UUID_LEN = 36
+
+global.is_uuid = s => {
+
+	if (typeof s !== 'string' || s.length !== UUID_LEN) return false
+	
+	for (let i = 0; i < UUID_LEN; i ++) {
+
+		const c = s.charCodeAt (i); switch (i) {
+			case 8:
+			case 13:
+			case 18:
+			case 23:
+				if (c === CH_MINUS) break
+				return false
+			default:
+				if (c <  CH_0) return false
+				if (c <= CH_9) break
+				if (c <  CH_AU) return false
+				if (c <= CH_FU) break
+				if (c <  CH_AL) return false
+				if (c <= CH_FL) break
+				return false
+		}
+
+	}
+
+	return true
+
+}
