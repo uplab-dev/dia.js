@@ -1,4 +1,5 @@
 const zlib       = require ('zlib')
+const ERR_PREFIX = 'DB::Exception: '
 
 // Borrowed from https://github.com/sindresorhus/is-stream
 
@@ -15,13 +16,11 @@ isStream.readable = stream =>
 
 const  Dia          = require ('../../Dia.js')
 const  LineWriter   = require ('./clickhouse/LineWriter.js')
-const  SqlPrepender = require ('./clickhouse/SqlPrepender.js')
 const  readline     = require ('readline')
 const {
-	Transform,
 	PassThrough,
 	Readable,
-}   				= require ('stream')
+}   				= require ('stream');
 
 const RE_NULLABLE = /^Nullable\((.*?)\)$/
 // eslint-disable-next-line redos/no-vulnerable
@@ -181,42 +180,56 @@ class ChClient extends Dia.DB.Client {
 
 		if (is._readableState.objectMode) plug (new LineWriter ({table: {name: '(GENERATED)', columns}}))
 
-        {
+		headers ['Content-Encoding'] = 'gzip'        
 
-        	const sql = `INSERT INTO ${table_name} (${Object.keys(columns)})`;
-
-        	var log_event = backend.set_parent_log_event (this.log_start (sql))
-        
-	        plug (new SqlPrepender (sql))
-
-        }
-
-        {
-
-			headers ['Content-Encoding'] = 'gzip'
-
-	        plug (zlib.createGzip ({level: 9}))
-
-        }
+		const sql = `INSERT INTO ${table_name} (${Object.keys(columns)})`, log_event = backend.set_parent_log_event (this.log_start (sql))		
 
 		try {
- 
-			let res = await backend.response ({headers}, is)
 
-			if (res.includes ('DB::Exception')) {
-				const match = res.match(/DB::Exception: (.+)/);
-				throw new Error (match.join ('. '));
-			}
+			await new Promise ((ok, fail) => {
 
+				is.on ('error', fail)
+	
+				const {o} = backend, rq = require (o.protocol.slice (0, -1)).request (o.url, {...o, headers, method: 'POST'})
+	
+				rq.on ('error', fail)
+	
+				rq.on ('response', rp => {
+	
+					rp.on ('error', fail)
+
+					rp.setEncoding ('utf8')
+
+					let rp_body = ''; rp.on ('data', s => rp_body += s)
+
+					rp.on ('end', () => {
+		
+						const pos = rp_body.indexOf (ERR_PREFIX); if (pos === -1) return ok ()
+	
+						fail (Error (rp_body.slice (pos + ERR_PREFIX.length)))
+	
+					})
+
+				})
+
+				const z = zlib.createGzip ({level: 9})
+
+				z.pipe (rq)
+
+				z.write (`${sql} FORMAT TSV\n`)
+
+				plug (z)
+	
+			})	
 
 		}
 		catch (error) {
-			
-		    this.log_error (log_event, error)
-		
+
+			this.log_error (log_event, error)
+
 		}
 		finally {
-		
+
 			this.log_finish (log_event)
 
 		}
