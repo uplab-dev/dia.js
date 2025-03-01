@@ -155,15 +155,19 @@ class ChClient extends Dia.DB.Client {
 		
 		return this.do (sql, params)
 		
-    }    
+    }
 
     async load (is, table_name, fields) {
 
-    	const {backend} = this, headers = {"Content-Type": "text/plain"}, plug = xform => {
+    	const {backend} = this, headers = {"Content-Type": "text/plain"}
 
-        	is.on ('error', x => {x._is_from_input_stream = true; xform.destroy (x)})
+		const pipeX = (is, os, r2 = true) => {
 
-	        is = is.pipe (xform)
+        	is.on ('error', x => {x._is_from_input_stream = true; os.destroy (x)})
+
+	        is.pipe (os)
+
+			return r2 ? os : is
 
     	}
 
@@ -178,7 +182,7 @@ class ChClient extends Dia.DB.Client {
 
 		}
 
-		if (is._readableState.objectMode) plug (new LineWriter ({table: {name: '(GENERATED)', columns}}))
+		if (is._readableState.objectMode) is = pipeX (is, new LineWriter ({table: {name: '(GENERATED)', columns}}))
 
 		headers ['Content-Encoding'] = 'gzip'        
 
@@ -212,13 +216,11 @@ class ChClient extends Dia.DB.Client {
 
 				})
 
-				const z = zlib.createGzip ({level: 9})
+				rq = pipeX (zlib.createGzip ({level: 9}), rq, false)
 
-				z.pipe (rq)
+				rq.write (`${sql} FORMAT TSV\n`)
 
-				z.write (`${sql} FORMAT TSV\n`)
-
-				plug (z)
+				pipeX (is, rq)
 	
 			})	
 
