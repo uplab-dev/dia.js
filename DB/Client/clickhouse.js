@@ -157,7 +157,7 @@ class ChClient extends Dia.DB.Client {
 		
     }
 
-    async load (is, table_name, fields) {
+    async load (is, table_name, fields, options = {}) {
 
     	const {backend} = this, headers = {"Content-Type": "text/plain"}
 
@@ -184,7 +184,13 @@ class ChClient extends Dia.DB.Client {
 
 		if (is._readableState.objectMode) is = pipeX (is, new LineWriter ({table: {name: '(GENERATED)', columns}}))
 
-		headers ['Content-Encoding'] = 'gzip'        
+		{
+
+			if (!('gzip' in options)) options.gzip = 9
+
+			if (options.gzip) headers ['Content-Encoding'] = 'gzip'
+
+		}
 
 		const sql = `INSERT INTO ${table_name} (${Object.keys(columns)})`, log_event = backend.set_parent_log_event (this.log_start (sql))		
 
@@ -194,7 +200,9 @@ class ChClient extends Dia.DB.Client {
 
 				is.on ('error', fail)
 	
-				const {o} = backend, rq = require (o.protocol.slice (0, -1)).request (o.url, {...o, headers, method: 'POST'})
+				const {o} = backend
+
+				let rq = require (o.protocol.slice (0, -1)).request (o.url, {...o, headers, method: 'POST'})
 	
 				rq.on ('error', fail)
 	
@@ -216,7 +224,13 @@ class ChClient extends Dia.DB.Client {
 
 				})
 
-				rq = pipeX (zlib.createGzip ({level: 9}), rq, false)
+				{
+
+					const level = options.gzip
+
+					if (level) rq = pipeX (zlib.createGzip ({level}), rq, false)
+
+				}
 
 				rq.write (`${sql} FORMAT TSV\n`)
 
