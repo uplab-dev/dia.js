@@ -207,6 +207,19 @@ class ChClient extends Dia.DB.Client {
 				rq.on ('error', fail)
 	
 				rq.on ('response', rp => {
+
+					{
+
+						const {headers} = rp, {path} = log_event
+
+						log_event.level = 'info'
+						log_event.message = headers ['x-clickhouse-summary']
+
+						path.push (headers ['x-clickhouse-query-id'])
+						this.log_write (log_event)
+						path.pop ()
+
+					}
 	
 					rp.on ('error', fail)
 
