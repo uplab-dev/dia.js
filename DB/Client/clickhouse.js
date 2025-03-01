@@ -1,4 +1,5 @@
 const zlib       = require ('zlib')
+const ERR_PREFIX = 'DB::Exception: '
 
 // Borrowed from https://github.com/sindresorhus/is-stream
 
@@ -15,13 +16,11 @@ isStream.readable = stream =>
 
 const  Dia          = require ('../../Dia.js')
 const  LineWriter   = require ('./clickhouse/LineWriter.js')
-const  SqlPrepender = require ('./clickhouse/SqlPrepender.js')
 const  readline     = require ('readline')
 const {
-	Transform,
 	PassThrough,
 	Readable,
-}   				= require ('stream')
+}   				= require ('stream');
 
 const RE_NULLABLE = /^Nullable\((.*?)\)$/
 // eslint-disable-next-line redos/no-vulnerable
@@ -156,15 +155,19 @@ class ChClient extends Dia.DB.Client {
 		
 		return this.do (sql, params)
 		
-    }    
+    }
 
-    async load (is, table_name, fields) {
+    async load (is, table_name, fields, options = {}) {
 
-    	const {backend} = this, headers = {"Content-Type": "text/plain"}, plug = xform => {
+    	const {backend} = this, headers = {"Content-Type": "text/plain"}
 
-        	is.on ('error', x => {x._is_from_input_stream = true; xform.destroy (x)})
+		const pipeX = (is, os, r2 = true) => {
 
-	        is = is.pipe (xform)
+        	is.on ('error', x => {x._is_from_input_stream = true; os.destroy (x)})
+
+	        is.pipe (os)
+
+			return r2 ? os : is
 
     	}
 
@@ -179,44 +182,83 @@ class ChClient extends Dia.DB.Client {
 
 		}
 
-		if (is._readableState.objectMode) plug (new LineWriter ({table: {name: '(GENERATED)', columns}}))
+		if (is._readableState.objectMode) is = pipeX (is, new LineWriter ({table: {name: '(GENERATED)', columns}}))
 
-        {
+		{
 
-        	const sql = `INSERT INTO ${table_name} (${Object.keys(columns)})`;
+			if (!('gzip' in options)) options.gzip = 9
 
-        	var log_event = backend.set_parent_log_event (this.log_start (sql))
-        
-	        plug (new SqlPrepender (sql))
+			if (options.gzip) headers ['Content-Encoding'] = 'gzip'
 
-        }
+		}
 
-        {
-
-			headers ['Content-Encoding'] = 'gzip'
-
-	        plug (zlib.createGzip ({level: 9}))
-
-        }
+		const sql = `INSERT INTO ${table_name} (${Object.keys(columns)})`, log_event = backend.set_parent_log_event (this.log_start (sql))		
 
 		try {
- 
-			let res = await backend.response ({headers}, is)
 
-			if (res.includes ('DB::Exception')) {
-				const match = res.match(/DB::Exception: (.+)/);
-				throw new Error (match.join ('. '));
-			}
+			await new Promise ((ok, fail) => {
 
+				is.on ('error', fail)
+	
+				const {o} = backend
+
+				let rq = require (o.protocol.slice (0, -1)).request (o.url, {...o, headers, method: 'POST'})
+	
+				rq.on ('error', fail)
+	
+				rq.on ('response', rp => {
+
+					{
+
+						const {headers} = rp, {path} = log_event
+
+						log_event.level = 'info'
+						log_event.message = headers ['x-clickhouse-summary']
+
+						path.push (headers ['x-clickhouse-query-id'])
+						this.log_write (log_event)
+						path.pop ()
+
+					}
+	
+					rp.on ('error', fail)
+
+					rp.setEncoding ('utf8')
+
+					let rp_body = ''; rp.on ('data', s => rp_body += s)
+
+					rp.on ('end', () => {
+		
+						const pos = rp_body.indexOf (ERR_PREFIX); if (pos === -1) return ok ()
+	
+						fail (Error (rp_body.slice (pos + ERR_PREFIX.length)))
+	
+					})
+
+				})
+
+				{
+
+					const level = options.gzip
+
+					if (level) rq = pipeX (zlib.createGzip ({level}), rq, false)
+
+				}
+
+				rq.write (`${sql} FORMAT TSV\n`)
+
+				pipeX (is, rq)
+	
+			})	
 
 		}
 		catch (error) {
-			
-		    this.log_error (log_event, error)
-		
+
+			this.log_error (log_event, error)
+
 		}
 		finally {
-		
+
 			this.log_finish (log_event)
 
 		}
