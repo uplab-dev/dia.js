@@ -1,9 +1,30 @@
 const Dia = require ('../../Dia.js')
-const {Readable, PassThrough} = require ('stream')
+const {Readable, PassThrough, Transform}   = require ('stream')
 const WrappedError = require ('../../Log/WrappedError.js')
 const to_tsv       = require ('./postgresql/to_tsv.js')
 const util         = require ('util')
 const PgCursor     = require ('pg-cursor')
+
+const CH_C_UC = 'C'.charCodeAt (0)
+const CH_C_LC = 'c'.charCodeAt (0)
+
+const isCopyStatement = sql => {
+
+    sql = sql.trimStart (); switch (sql.charCodeAt (0)) {
+
+        case CH_C_UC:
+            return sql.startsWith ('COPY') || sql.startsWith ('Copy')
+
+        case CH_C_LC:
+            return sql.startsWith ('copy')
+    
+        default:
+            return false
+
+    }
+
+}	
+
 
 let pg_query_stream; try {pg_query_stream = require ('pg-query-stream')} catch (x) {console.log ('no pg-query-stream, ok')}
 
@@ -138,20 +159,22 @@ class PgClient extends Dia.DB.Client {
         }
         
     }
-    
+
     async select_stream (original_sql, params, o) {
-    	
+
         let sql = this.fix_sql (original_sql)
         
     	await this.check_signature ()
         let log_event = this.log_start (sql, params)
-        
-        let qs = require ('pg-query-stream')
 
-    	let stream = this.backend.query (new qs (sql, params, o))
-    	
+        const stream = this.backend.query (
+            isCopyStatement (sql) ?
+                (require ('pg-copy-streams')).to (sql) :
+                new (require ('pg-query-stream')) (sql, params, o)
+        )
+
     	stream.on ('end', () => this.log_finish (log_event))
-    	
+
     	return stream
 
     }
