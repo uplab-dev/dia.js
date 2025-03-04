@@ -732,18 +732,18 @@ class PgClient extends Dia.DB.Client {
     async load_schema_table_keys () {
     
         let rs = await this.select_all (`
-            SELECT 
-                CONCAT_WS ('.', 
-                	CASE 
-                        WHEN schemaname = current_schema () THEN NULL
-                        ELSE schemaname
-                    END
-                    , tablename
-                ) AS tablename,
-                indexname, 
-                REPLACE (indexdef, schemaname || '.', '') AS indexdef
+            SELECT
+                tables.relname AS tablename
+                , indexes.relname AS indexname
+                , REPLACE (pg_get_indexdef(pg_index.indexrelid), pg_namespace.nspname || '.', '') AS indexdef
             FROM
-                pg_indexes
+                pg_class indexes
+            INNER JOIN pg_index ON indexes.oid = pg_index.indexrelid
+            INNER JOIN pg_class tables ON tables.oid = pg_index.indrelid
+            INNER JOIN pg_namespace ON pg_namespace.oid = indexes.relnamespace
+            WHERE
+                pg_namespace.nspname NOT LIKE 'pg_%'
+            AND indexes.relkind IN ('i', 'I')
         `, [])
 
         let tables = this.model.tables
