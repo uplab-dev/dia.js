@@ -30,7 +30,8 @@ module.exports = class {
     	
     	if (!queue.name && !queue.type) queue.name = name
     	
-    	let is_empty = async () => this.do_with_db ({
+    	let is_empty = async (log_meta) => this.do_with_db ({
+    		log_meta,
     		label: `Checking if ${name} is empty`,
     		f: async db => {
     			let l = await db.list ({[`${name}(${p_k})`]: {LIMIT: 1, ORDER: queue.ORDER || clone (p_k)}})
@@ -56,7 +57,8 @@ module.exports = class {
     	
     		if (!(LIMIT > 0)) throw new Error ('Invalid LIMIT value for queue' + queue.name + ': ' + LIMIT)
     		
-			options.fetch = async () => this.do_with_db ({
+			options.fetch = async (log_meta) => this.do_with_db ({
+				log_meta,
 				label: `Fetching ${LIMIT} queued task${LIMIT > 1 ? 's' : ''} from ${name}`,
 				f: async db => {
 					let l = await db.list ({[name]: {ORDER, LIMIT}})
@@ -127,7 +129,7 @@ module.exports = class {
     
     	let {f, label} = o
     
-    	let {log_meta} = this; if (!log_meta) log_meta = {}
+    	let {log_meta} = this; if (!log_meta) log_meta = o.log_meta || {}
     
 		this.log_event = this.log_write (new LogEvent ({
     		...log_meta,
