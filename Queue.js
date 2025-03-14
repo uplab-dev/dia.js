@@ -39,7 +39,7 @@ module.exports = class extends EventEmitter {
 			
 				const {timer} = this; if (!timer.scheduled_event) try {
 
-					let is_empty = await this.is_empty ()
+					let is_empty = await this.is_empty (log_meta)
 
 					if (is_empty === false) timer.in (0, 'invoked because the queue is not empty')
 					
@@ -102,7 +102,7 @@ module.exports = class extends EventEmitter {
 			
 			user    = conf.get_default_user (rq),
 			
-			list    = await this.fetch ()
+			list    = await this.fetch (log_meta)
 			
 		if (list != null) {
 				
@@ -181,22 +181,22 @@ module.exports = class extends EventEmitter {
 
 	}
 	
-	async is_empty () {
+	async is_empty (log_meta) {
 
 		let {is_empty} = this.o;
 
 		switch (typeof is_empty) {
-			case 'function' : return is_empty ()
+			case 'function' : return is_empty (log_meta)
 			default         : return is_empty
 		}
 
 	}
 
-	async fetch () {
+	async fetch (log_meta) {
 
 		let {fetch} = this.o; if (!fetch) return null
 
-		let list = await fetch ()
+		let list = await fetch (log_meta)
 		
 		return list
 
