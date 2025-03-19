@@ -135,8 +135,8 @@ class PgClient extends Dia.DB.Client {
         catch (e) {
 
             if (e.code == 23505) {
-
-                let {model} = this; if (model) {
+            
+				let {model} = this; if (model && e.table && model.tables [e.table]) {
 
                     let {constraint_error_messages} = model.tables [e.table]; if (constraint_error_messages) {
 
@@ -407,9 +407,9 @@ class PgClient extends Dia.DB.Client {
         	if (!log_event) log_event = this.log_start (sql, params)
         
         	if (e.code == 23505) {
-        	
-        		let {model} = this; if (model) {
 
+				let {model} = this; if (model && e.table && model.tables [e.table]) {
+        
 	        		let {constraint_error_messages} = model.tables [e.table]; if (constraint_error_messages) {
 	        		
 	        			let message = constraint_error_messages [e.constraint]; 
