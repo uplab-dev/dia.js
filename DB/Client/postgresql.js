@@ -733,7 +733,10 @@ class PgClient extends Dia.DB.Client {
     
         let rs = await this.select_all (`
             SELECT
-                tables.relname AS tablename
+            	CONCAT_WS ('.',
+            		NULLIF (tables.relnamespace::regnamespace::text, current_schema ())
+                	, tables.relname
+                ) AS tablename
                 , indexes.relname AS indexname
                 , REPLACE (pg_get_indexdef(pg_index.indexrelid), pg_namespace.nspname || '.', '') AS indexdef
             FROM
