@@ -639,6 +639,16 @@ module.exports = class extends require ('../Pool.js') {
 
     }
 
+    is_column_to_alter_to_boolean (ex_col, col) {
+
+        let {TYPE_NAME} = ex_col
+
+        if (TYPE_NAME == 'BIT') return true
+
+        return false
+
+    }
+
     is_column_to_alter (ex_col, col) {
     
     	if (
@@ -650,12 +660,12 @@ module.exports = class extends require ('../Pool.js') {
     	let {TYPE_NAME} = col
 
 		if (this.is_type_int (TYPE_NAME)) return this.is_column_to_alter_to_int (ex_col, col)
-		
 		switch (TYPE_NAME) {
 			case 'VARCHAR':   return this.is_column_to_alter_to_varchar   (ex_col, col)
 			case 'NUMERIC':   return this.is_column_to_alter_to_numeric   (ex_col, col)
 			case 'TEXT':      return this.is_column_to_alter_to_text      (ex_col, col)
 			case 'TIMESTAMP': return this.is_column_to_alter_to_timestamp (ex_col, col)
+			case 'BOOL':      return this.is_column_to_alter_to_boolean   (ex_col, col)
 			default:          return false
 		}
 
@@ -667,6 +677,7 @@ module.exports = class extends require ('../Pool.js') {
 
         if (ex_col.TYPE_NAME == 'BIT' && col.TYPE_NAME == 'INT') using = `"${col.name}"::INT`
         if (ex_col.TYPE_NAME == 'BIT' && col.TYPE_NAME == 'INT2') using = `"${col.name}"::INT::INT2`
+        if (ex_col.TYPE_NAME == 'BIT' && col.TYPE_NAME == 'BOOL') using = `CASE WHEN "${col.name}" = B'0' THEN FALSE WHEN "${col.name}" = B'1' THEN TRUE ELSE NULL END`
 
         return using ? ` USING ${using}` : ''
 
