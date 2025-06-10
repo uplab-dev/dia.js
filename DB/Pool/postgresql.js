@@ -660,6 +660,7 @@ module.exports = class extends require ('../Pool.js') {
     	let {TYPE_NAME} = col
 
 		if (this.is_type_int (TYPE_NAME)) return this.is_column_to_alter_to_int (ex_col, col)
+
 		switch (TYPE_NAME) {
 			case 'VARCHAR':   return this.is_column_to_alter_to_varchar   (ex_col, col)
 			case 'NUMERIC':   return this.is_column_to_alter_to_numeric   (ex_col, col)
