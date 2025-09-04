@@ -74,15 +74,15 @@ module.exports = class extends EventEmitter {
 	
 	}
 
-	pause () {
+	pause (source, error) {
 	
-		return this.timer.pause ()
+		return this.timer.pause (source)
 	
 	}
 
-	resume () {
+	resume (source) {
 	
-		return this.timer.resume ()
+		return this.timer.resume (source)
 	
 	}
 	

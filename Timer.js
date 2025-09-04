@@ -216,15 +216,15 @@ module.exports = class extends EventEmitter {
 	
 	}
 	
-	pause (error) {
+	pause (source, error) {
 
-		if (!this.is_paused ()) new Pause (this, {error})
+		if (!this.is_paused ()) new Pause (this, {source, error})
 
 	}
 
-	resume (comment) {
+	resume (source, comment) {
 
-		const {current_pause} = this; if (current_pause != null) current_pause.cancel ()
+		const {current_pause} = this; if (current_pause != null) current_pause.cancel (source)
 
 	}
 	
