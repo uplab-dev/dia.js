@@ -149,8 +149,10 @@ module.exports = class {
 		label += ', going to be paused.'
 
 		timer.log_write (executor.log_event.set ({label}))
+
+		const options = {error}
 	
-		timer.pause (error)
+		timer.pause (options)
 
 	}
 

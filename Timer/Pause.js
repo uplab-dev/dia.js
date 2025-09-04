@@ -47,7 +47,9 @@ module.exports = class {
 
 	}
 
-	cancel (source, comment) {
+	cancel (options) {
+
+		let {source, comment} = options
 
 		const {timer, scheduled} = this
 

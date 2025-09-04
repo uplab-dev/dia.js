@@ -74,15 +74,35 @@ module.exports = class extends EventEmitter {
 	
 	}
 
-	pause (source, error) {
+	pause () {
 	
-		return this.timer.pause (source)
+		let options = {}
+
+		let s = (new Error ('?')).stack.split (/[\n\r]+/).slice (1).find (s => !/Queue.js:/.test (s))
+
+		if (s) {
+
+			let a = s.split (/[\(\)]/); if (a.length === 3) options.source = a [1]
+
+		}
+	
+		return this.timer.pause (options)
 	
 	}
 
-	resume (source) {
+	resume () {
 	
-		return this.timer.resume (source)
+		let options = {}
+
+		let s = (new Error ('?')).stack.split (/[\n\r]+/).slice (1).find (s => !/Queue.js:/.test (s))
+
+		if (s) {
+
+			let a = s.split (/[\(\)]/); if (a.length === 3) options.source = a [1]
+
+		}
+	
+		return this.timer.resume (options)
 	
 	}
 	
