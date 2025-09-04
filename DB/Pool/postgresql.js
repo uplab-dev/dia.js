@@ -1439,6 +1439,10 @@ module.exports = class extends require ('../Pool.js') {
             return !o ? '' : Object.entries (o).map (i => i [0] + ' ' + i [1] + t)
         }
 
+        const has_no_return = function(s) {
+            return /^\s*TABLE\b/.test (s) || s == 'void';
+        }
+
         for (let type of ['function', 'procedure']) {
                 
 			for (let {name, returns, arg, language, options} of Object.values (this.model [type + 's'])) {
@@ -1449,7 +1453,7 @@ module.exports = class extends require ('../Pool.js') {
 
 						case 'plpgsql': switch (type) {
 						
-							case 'function'  : return /^\s*TABLE\b/.test (returns) ? 'BEGIN END;' : 'BEGIN RETURN NULL; END;'
+							case 'function'  : return has_no_return(returns)  ? 'BEGIN END;' : 'BEGIN RETURN NULL; END;'
 							
 							case 'procedure' : return 'BEGIN NULL; END;'
 						
