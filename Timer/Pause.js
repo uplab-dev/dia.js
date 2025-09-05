@@ -1,4 +1,5 @@
-const assert = require ('assert')
+const LogEvent = require ('../Log/Events/Timer.js')
+const assert   = require ('assert')
 
 module.exports = class {
 
@@ -14,7 +15,7 @@ module.exports = class {
 			ts_paused: this.created.toJSON (),
 		}
 		
-		let {error} = options; if (error != null) {
+		const {source, error} = options; if (error != null) {
 		
 			this.error = error
 
@@ -37,12 +38,18 @@ module.exports = class {
 		executor.is_to_reset = false
 		
 		timer.current_pause = this
+
+		let label = 'paused'; if (source) label += ' from ' + source 
+
+		timer.log_write (executor.log_event.set ({label}))
 		
 		this.timer = timer
 
 	}
 
-	cancel (comment) {
+	cancel (options) {
+
+		const {source, comment} = options
 
 		const {timer, scheduled} = this
 
@@ -66,6 +73,14 @@ module.exports = class {
 			timer.tick (comment)
 
 		}
+
+		let label = 'resumed'; if (source) label += ' from ' + source 
+
+		timer.log_write (new LogEvent ({
+			...timer.log_meta,
+			parent: null,
+			label
+		}))
 
 		timer.notify ()
 

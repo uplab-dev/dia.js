@@ -1,5 +1,6 @@
 const EventEmitter = require ('events')
-const Timer = require ('./Timer.js')
+const Timer        = require ('./Timer.js')
+const get_caller   = require ('./Caller.js')
 
 module.exports = class extends EventEmitter {
 
@@ -76,14 +77,30 @@ module.exports = class extends EventEmitter {
 
 	pause () {
 	
-		return this.timer.pause ()
+		const options = this.get_options ()
+	
+		return this.timer.pause (options)
 	
 	}
 
 	resume () {
 	
-		return this.timer.resume ()
+		const options = this.get_options ()
 	
+		return this.timer.resume (options)
+	
+	}
+
+	get_options () {
+
+		const options = {}
+
+		const caller = get_caller ('Queue.js')
+
+		if (caller) options.source = caller
+
+		return options
+
 	}
 	
 	async do_main_job (log_meta) {

@@ -8,6 +8,7 @@ const Pause        = require ('./Timer/Pause.js')
 const Executor     = require ('./Timer/Executor.js')
 const TimerPromise = require ('./Timer/Promise.js')
 const Throttle     = require ('./Timer/Throttle.js')
+const get_caller   = require('./Caller.js')
 
 const Dia = require ('./Dia.js')
 
@@ -166,13 +167,9 @@ module.exports = class extends EventEmitter {
 
 			comment = `at (${ts.toISOString ()}) called`
 			
-			let s = (new Error ('?')).stack.split (/[\n\r]+/).slice (1).find (s => !/Timer.js:/.test (s))
-			
-			if (s) {
-			
-				let a = s.split (/[\(\)]/); if (a.length === 3) comment += ' from ' + a [1]
+			const caller = get_caller ('Timer.js')
 
-			}
+			if (caller) comment += ' from ' + caller
 
 		}
 
@@ -216,15 +213,15 @@ module.exports = class extends EventEmitter {
 	
 	}
 	
-	pause (error) {
+	pause (options) {
 
-		if (!this.is_paused ()) new Pause (this, {error})
+		if (!this.is_paused ()) new Pause (this, options)
 
 	}
 
-	resume (comment) {
+	resume (options) {
 
-		const {current_pause} = this; if (current_pause != null) current_pause.cancel ()
+		const {current_pause} = this; if (current_pause != null) current_pause.cancel (options)
 
 	}
 	
