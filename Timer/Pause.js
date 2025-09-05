@@ -15,7 +15,7 @@ module.exports = class {
 			ts_paused: this.created.toJSON (),
 		}
 		
-		let {source, error} = options; if (error != null) {
+		const {source, error} = options; if (error != null) {
 		
 			this.error = error
 
@@ -49,7 +49,7 @@ module.exports = class {
 
 	cancel (options) {
 
-		let {source, comment} = options
+		const {source, comment} = options
 
 		const {timer, scheduled} = this
 

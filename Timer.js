@@ -166,11 +166,21 @@ module.exports = class extends EventEmitter {
 
 			comment = `at (${ts.toISOString ()}) called`
 			
-			let s = (new Error ('?')).stack.split (/[\n\r]+/).slice (1).find (s => !/Timer.js:/.test (s))
+			let s = (new Error ('?')).stack.split (/[\n\r]+/).slice (1).find (s => !s.includes ('Timer.js'))
 			
 			if (s) {
-			
-				let a = s.split (/[\(\)]/); if (a.length === 3) comment += ' from ' + a [1]
+
+				const i1_open  = s.indexOf ('(')
+				const i1_close = s.indexOf (')')
+				const i2_open  = s.lastIndexOf ('(')
+				const i2_close = s.lastIndexOf (')')
+
+				if (
+					i1_open !== -1 &&
+					i1_close > i1_open &&
+					i1_open === i2_open &&
+					i1_close === i2_close
+				) comment += ' from ' + s.slice (i1_open + 1, i1_close)
 
 			}
 

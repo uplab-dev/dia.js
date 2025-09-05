@@ -76,15 +76,7 @@ module.exports = class extends EventEmitter {
 
 	pause () {
 	
-		let options = {}
-
-		let s = (new Error ('?')).stack.split (/[\n\r]+/).slice (1).find (s => !/Queue.js:/.test (s))
-
-		if (s) {
-
-			let a = s.split (/[\(\)]/); if (a.length === 3) options.source = a [1]
-
-		}
+		const options = this.get_options ()
 	
 		return this.timer.pause (options)
 	
@@ -92,18 +84,36 @@ module.exports = class extends EventEmitter {
 
 	resume () {
 	
-		let options = {}
-
-		let s = (new Error ('?')).stack.split (/[\n\r]+/).slice (1).find (s => !/Queue.js:/.test (s))
-
-		if (s) {
-
-			let a = s.split (/[\(\)]/); if (a.length === 3) options.source = a [1]
-
-		}
+		const options = this.get_options ()
 	
 		return this.timer.resume (options)
 	
+	}
+
+	get_options () {
+
+		const options = {}
+
+		const s = (new Error ('?')).stack.split (/[\n\r]+/).slice (1).find (s => !s.includes ('Queue.js'))
+
+		if (s) {
+
+			const i1_open  = s.indexOf ('(')
+			const i1_close = s.indexOf (')')
+			const i2_open  = s.lastIndexOf ('(')
+			const i2_close = s.lastIndexOf (')')
+
+			if (
+				i1_open !== -1 &&
+				i1_close > i1_open &&
+				i1_open === i2_open &&
+				i1_close === i2_close
+			) options.source = s.slice (i1_open + 1, i1_close)
+
+		}
+
+		return options
+
 	}
 	
 	async do_main_job (log_meta) {
